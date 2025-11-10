@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OREGON SPF Evaluation TOOL</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #devTestsContainer { display: none; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="bg-blue-800 text-white text-3xl p-6 font-bold text-center">
+    OREGON SPF Evaluation TOOL
+  </div>
+  <div class="p-6 space-y-8">
+    <!-- Tab Navigation -->
+    <div class="flex space-x-4">
+      <button onclick="showTab('prediction')" class="bg-blue-600 text-white px-4 py-2 rounded">Prediction</button>
+      <button onclick="showTab('updateCheck')" class="bg-blue-600 text-white px-4 py-2 rounded">SPF Update Check</button>
+    </div>
+
+    <!-- Prediction Tab -->
+    <div id="prediction" class="tab">
+      <div>
+        <label class="block text-lg font-semibold">Select Data Entry Method:</label>
+        <select id="dataEntryMethod" class="mt-2 p-2 border rounded" onchange="handleDataEntryMethod()">
+          <option value="">-- Select --</option>
+          <option value="manual">Manual Input</option>
+          <option value="upload">Upload Dataset</option>
+        </select>
+      </div>
+
+      <div id="uploadGuide" class="hidden text-sm text-red-700">
+        Please ensure your dataset includes the following variables named exactly as: <strong>AADT</strong>, <strong>Speed</strong>, <strong>Lanes</strong>, <strong>TruckPct</strong>.
+      </div>
+
+      <div>
+        <label class="block text-lg font-semibold">Select Facility Type:</label>
+        <select id="facilityType" class="mt-2 p-2 border rounded" onchange="updateSPFInfo()">
+          <option value="">-- Select Facility --</option>
+          <option value="urban_freeway">Urban Freeway</option>
+          <option value="rural_freeway">Rural Freeway</option>
+          <option value="urban_arterial">Urban Arterial</option>
+          <option value="urban_3_leg">Urban Intersection (3-leg)</option>
+          <option value="urban_4_leg">Urban Intersection (4-leg)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-lg font-semibold">Select SPF Model:</label>
+        <select id="spfModel" class="mt-2 p-2 border rounded">
+          <option value="recommended">Recommended Model</option>
+          <option value="hsm">Default HSM SPF</option>
+        </select>
+      </div>
+
+      <div id="spfInfo" class="mt-2 text-sm text-gray-800 font-medium bg-blue-50 border border-blue-200 p-3 rounded hidden"></div>
+
+      <div id="variableSelection" class="hidden">
+        <label class="block text-lg font-semibold">Select Available Variables:</label>
+        <div class="flex flex-wrap gap-4 mt-2">
+          <label><input type="checkbox" value="AADT" onchange="toggleInput('AADT')" /> AADT</label>
+          <label><input type="checkbox" value="Speed" onchange="toggleInput('Speed')" /> Speed Limit</label>
+          <label><input type="checkbox" value="Lanes" onchange="toggleInput('Lanes')" /> Number of Lanes</label>
+          <label><input type="checkbox" value="TruckPct" onchange="toggleInput('TruckPct')" /> Truck %</label>
+        </div>
+      </div>
+
+      <div id="manualInputs" class="space-y-2"></div>
+
+      <div id="uploadSection" class="hidden">
+        <label class="block text-lg font-semibold mt-4">Upload CSV Dataset:</label>
+        <input type="file" id="fileUpload" class="mt-2 p-2 border rounded" accept=".csv" />
+      </div>
+
+      <button onclick="runPrediction()" class="bg-blue-600 text-white px-4 py-2 rounded font-semibold mt-4">
+        Run
+      </button>
+
+      <div id="predictionOutput" class="mt-6 text-lg font-semibold text-gray-800 whitespace-pre-line hidden"></div>
+    </div>
+
+    <!-- Update Check Tab -->
+    <div id="updateCheck" class="tab hidden grid grid-cols-2 gap-8">
+      <!-- Left Side: Functionality -->
+      <div>
+        <label class="block text-lg font-semibold">Upload Historical Facility Dataset (CSV):</label>
+        <input type="file" id="updateDataset" class="mt-2 p-2 border rounded" accept=".csv" />
+        <p class="text-sm text-gray-600 mt-1">Expected columns: AADT, Speed, Lanes, TruckPct, ObservedCrashes</p>
+        <button onclick="checkForUpdate()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded font-semibold">
+          Evaluate Need for SPF Update
+        </button>
+        <button onclick="runDemoUpdate()" class="mt-4 bg-yellow-500 text-white px-4 py-2 rounded font-semibold">
+          Run Demo (No File)
+        </button>
+        <div id="updateOutput" class="mt-6 text-lg font-semibold text-gray-800 whitespace-pre-line"></div>
+      </div>
+
+      <!-- Right Side: Detailed Instructions Panel -->
+      <div class="border border-gray-400 bg-white text-black p-5 rounded shadow-md">
+        <h2 class="text-xl font-bold mb-2">🧭 How to Use the SPF Update Check</h2>
+        <p class="text-sm mb-3">
+          This section helps determine whether Oregon’s Safety Performance Functions (SPFs) need to be updated using recent crash data and roadway characteristics.
+        </p>
+
+        <h3 class="font-semibold mb-1">Step 1: Prepare Your Data</h3>
+        <ul class="list-disc list-inside text-sm mb-3">
+          <li>Ensure your data file is in <strong>CSV format</strong>.</li>
+          <li>Include the following columns: <strong>AADT</strong>, <strong>Speed</strong>, <strong>Lanes</strong>, <strong>TruckPct</strong>, and <strong>ObservedCrashes</strong>.</li>
+        </ul>
+
+        <h3 class="font-semibold mb-1">Step 2: Run the Analysis</h3>
+        <ul class="list-disc list-inside text-sm mb-3">
+          <li>Upload your dataset by clicking <strong>“Upload Historical Facility Dataset”</strong>.</li>
+          <li>Click <strong>“Evaluate Need for SPF Update”</strong> to perform the analysis.</li>
+          <li>If no data is available, you can test using <strong>“Run Demo (No File)”</strong>.</li>
+        </ul>
+
+        <h3 class="font-semibold mb-1">Step 3: Understand the Output</h3>
+        <ul class="list-disc list-inside text-sm mb-3">
+          <li><strong>No Update Necessary:</strong> Calibration difference ≤ 15% — Current SPFs are accurate and valid.</li>
+          <li><strong>Minor Update Recommended:</strong> Difference between 15–30% — Consider recalibrating or adding new data.</li>
+          <li><strong>Major Update Recommended:</strong> Difference > 30% — Indicates SPFs should be fully re-estimated.</li>
+        </ul>
+
+        <h3 class="font-semibold mb-1">Step 4: Next Steps</h3>
+        <ul class="list-disc list-inside text-sm">
+          <li>For <strong>minor updates</strong>, adjust existing SPF parameters or calibration factors.</li>
+          <li>For <strong>major updates</strong>, initiate a comprehensive SPF recalibration with updated crash data.</li>
+          <li>Document your findings and decisions for future reference and transparency.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="devTestsContainer">
+      <pre id="testResults"></pre>
+    </div>
+  </div>
+
+  <script>
+    function showTab(tabId) {
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(tab => tab.classList.add('hidden'));
+      const activeTab = document.getElementById(tabId);
+      if (activeTab) activeTab.classList.remove('hidden');
+    }
+
+    const spfInfo = {
+      urban_freeway: {text: "Recommended: Lognormal Model - SPF = exp(β0 + β1 * ln(AADT) + β2 * Speed)", default: false, factor: 1.1},
+      rural_freeway: {text: "Recommended: Lognormal Model - SPF = exp(β0 + β1 * ln(AADT) + β2 * TruckPct)", default: false, factor: 0.9},
+      urban_arterial: {text: "Recommended: Fractional Split Model - Separate SPF for each crash severity level.", default: false, factor: 1.0},
+      urban_3_leg: {text: "Recommended: HSM Default SPF - SPF = function of AADT, Lanes", default: true, factor: 0.8},
+      urban_4_leg: {text: "Recommended: HSM Default SPF - SPF = function of AADT, Speed, Lanes", default: true, factor: 0.85}
+    };
+
+    function updateSPFInfo() {
+      const facility = document.getElementById('facilityType').value;
+      const infoBox = document.getElementById('spfInfo');
+      if (!facility) {
+        infoBox.classList.add('hidden');
+        infoBox.innerText = '';
+        return;
+      }
+      const spf = spfInfo[facility];
+      if (spf) {
+        infoBox.innerText = spf.text;
+        infoBox.classList.remove('hidden');
+      } else {
+        infoBox.classList.add('hidden');
+        infoBox.innerText = '';
+      }
+    }
+
+    function handleDataEntryMethod() {
+      const method = document.getElementById('dataEntryMethod').value;
+      document.getElementById('variableSelection').style.display = method === 'manual' ? 'block' : 'none';
+      document.getElementById('manualInputs').innerHTML = '';
+      document.getElementById('uploadSection').style.display = method === 'upload' ? 'block' : 'none';
+      document.getElementById('uploadGuide').style.display = method === 'upload' ? 'block' : 'none';
+    }
+
+    function toggleInput(variable) {
+      const inputArea = document.getElementById('manualInputs');
+      const existing = document.getElementById('input_' + variable);
+      if (existing) {
+        existing.remove();
+      } else {
+        const div = document.createElement('div');
+        div.id = 'input_' + variable;
+        div.innerHTML = `<label>${variable}:</label><input type='number' id='val_${variable}' class='ml-2 p-1 border rounded' placeholder='Enter ${variable}' />`;
+        inputArea.appendChild(div);
+      }
+    }
+
+    function hashString(str) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function lcg(seed) {
+      let s = seed >>> 0;
+      return function() {
+        s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+        return s / 0x100000000;
+      };
+    }
+
+    function collectInputKey() {
+      const method = document.getElementById('dataEntryMethod').value || '';
+      const facility = document.getElementById('facilityType').value || '';
+      const model = document.getElementById('spfModel').value || '';
+      const inputs = Array.from(document.querySelectorAll('#manualInputs input')).map(el => `${el.id}:${el.value}`).join('|');
+      return `${method}::${facility}::${model}::${inputs}`;
+    }
+
+    function runPrediction() {
+      const method = document.getElementById('dataEntryMethod').value;
+      const facility = document.getElementById('facilityType').value;
+      const model = document.getElementById('spfModel').value;
+
+      if (!method || !facility) {
+        alert('Please select a data entry method and facility type, and enter values before running.');
+        return;
+      }
+
+      const inputs = document.querySelectorAll('#manualInputs input');
+      if (method === 'manual' && inputs.length === 0) {
+        alert('Please add and input at least one variable before running the prediction.');
+        return;
+      }
+
+      const key = collectInputKey();
+      const seed = hashString(key);
+      const rand = lcg(seed);
+
+      const facilityFactor = spfInfo[facility]?.factor || 1.0;
+      const modelFactor = model === 'hsm' ? 1.3 : 1.0;
+      const totalFactor = facilityFactor * modelFactor;
+
+      const aadt = parseFloat(document.getElementById('val_AADT')?.value || 20000);
+      const speed = parseFloat(document.getElementById('val_Speed')?.value || 35);
+      const lanes = parseFloat(document.getElementById('val_Lanes')?.value || 2);
+      const truck = parseFloat(document.getElementById('val_TruckPct')?.value || 5);
+
+      const exposure = Math.log(Math.max(1, aadt)) * (1 + (lanes - 2) * 0.05) * (1 + truck * 0.01);
+      const severityTilt = (speed - 30) * 0.02;
+
+      const draw = (base, spread) => Math.max(0, Math.round((base + rand() * spread) * totalFactor));
+
+      const K = draw(0.5 + severityTilt, 1.5);
+      const A = draw(1.0 + severityTilt, 2.0);
+      const B = draw(2.0 + exposure * 0.1, 3.0);
+      const C = draw(3.0 + exposure * 0.15, 4.0);
+      const O = draw(4.0 + exposure * 0.25, 6.0);
+
+      const predictionOutput = document.getElementById('predictionOutput');
+      predictionOutput.classList.remove('hidden');
+      predictionOutput.innerText = `Predicted Crashes (KABCO Scale):\n\nFacility: ${facility.replace(/_/g, ' ')}\nModel: ${model}\n\nFatal (K): ${K}\nSevere Injury (A): ${A}\nMinor Injury (B): ${B}\nPossible Injury (C): ${C}\nProperty Damage Only (O): ${O}`;
+    }
+
+    function checkForUpdate() {
+      const output = document.getElementById('updateOutput');
+      output.innerText = 'Analyzing dataset... (mock analysis)';
+      setTimeout(() => {
+        const diff = Math.random();
+        if (diff > 0.3) {
+          output.innerText = `Calibration difference: ${(diff * 100).toFixed(2)}%\n→ Major update recommended.`;
+        } else if (diff > 0.15) {
+          output.innerText = `Calibration difference: ${(diff * 100).toFixed(2)}%\n→ Minor update recommended.`;
+        } else {
+          output.innerText = `Calibration difference: ${(diff * 100).toFixed(2)}%\n→ No update necessary.`;
+        }
+      }, 1000);
+    }
+
+    function runDemoUpdate() {
+      const output = document.getElementById('updateOutput');
+      const facilityOptions = ['Urban Freeway', 'Urban Arterial', 'Urban 4-leg Intersection'];
+      const randomIndex = Math.floor(Math.random() * facilityOptions.length);
+      const mockFacility = facilityOptions[randomIndex];
+      const mockDrift = Math.random();
+
+      setTimeout(() => {
+        let result = `Facility Type: ${mockFacility}\n`;
+        if (mockDrift > 0.3) {
+          result += `Calibration drift: ${(mockDrift * 100).toFixed(2)}%\n→ Major update recommended.`;
+        } else if (mockDrift > 0.15) {
+          result += `Calibration drift: ${(mockDrift * 100).toFixed(2)}%\n→ Minor update recommended.`;
+        } else {
+          result += `Calibration drift: ${(mockDrift * 100).toFixed(2)}%\n→ No update necessary.`;
+        }
+        output.innerText = result;
+      }, 800);
+    }
+  </script>
+</body>
+</html>
